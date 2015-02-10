@@ -172,7 +172,7 @@ public:
     for (int i = 0; i < 9; i++) 
       N[i].at(r, c) = (EQ + power) * w[i];
   }
-  void accelAt(int r, int c, double power = 50.0) {
+  void accelAt(int r, int c, double power = 60.0) {
     if (r < 0 || r >= rows() || c < 0 || c >= cols() || wall.at(r, c)) return;
     setEq(r, c);
     N[2].at(r, c) = (EQ + power) * w[2];
@@ -183,6 +183,10 @@ public:
     if (r <= 0 || r >= rows() - 1 || c <= 0 || c >= cols() - 1) return 0.0;
     return uy.at(r, c + 1) - uy.at(r, c - 1) - ux.at(r + 1, c) + ux.at(r - 1, c);
   }
+  double speedAt(int r, int c) const {
+    return sqrt(sq(ux.at(r, c)) + sq(uy.at(r, c)));
+  }
+
   unsigned char wallAt(int r, int c) const {
     return wall.at(r, c);
   }
@@ -203,7 +207,8 @@ protected:
 
   enum {
     PRESSURE,
-    CURL    
+    CURL,
+    SPEED
   } rendermode;
 
   int rate;
@@ -218,9 +223,14 @@ protected:
   }
   void mapCurlColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
     r = g = b = 0;
-    v *= 25.0;
+    v *= 50.0;
     if (v > 0.0) r = ByteImage::clip(255.0 * v);
     else if (v < 0.0) g = b = ByteImage::clip(255.0 * -v);
+  }
+  void mapSpeedColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
+    r = g = b = 0;
+    v *= 10.0;
+    r = ByteImage::clip(255.0 * v);
   }
 
   void handleEvent(SDL_Event event) {
@@ -271,6 +281,9 @@ protected:
       case SDLK_c:
 	rendermode = CURL;
 	break;
+      case SDLK_s:
+	rendermode = SPEED;
+	break;
       case SDLK_o:
 	printf("Set omega (current value: %.2lf)\n", sim.omega);
 	scanf("%lf", &sim.omega);
@@ -303,6 +316,9 @@ protected:
 	  break;
 	case CURL:
 	  mapCurlColor(sim.curlAt(r, c), R, G, B);
+	  break;
+	case SPEED:
+	  mapSpeedColor(sim.speedAt(r, c), R, G, B);
 	  break;
 	}	
 	if (sim.wallAt(r, c)) R = G = B = 255;

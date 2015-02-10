@@ -139,9 +139,10 @@ public:
       N[i].at(r, c) = EQ * w[i];
   }
 
-  void emitAt(int r, int c, double power = 4.0) {
+  void emitAt(int r, int c, double power = 16.0) {
+    if (r < 0 || r >= rows() || c < 0 || c >= cols()) return;
     for (int i = 0; i < 9; i++) 
-      N[i].at(r, c) = power * EQ * w[i];
+      N[i].at(r, c) = (EQ + power) * w[i];
   }
 
   double pressureAt(int r, int c) const {return p.at(r, c);}
@@ -161,8 +162,8 @@ protected:
   void mapColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
     r = g = b = 0;
     v -= sim.EQ;
-    if (v > 1.0) r = ByteImage::clip(16.0 * log2(v));
-    else if (v < 1.0) g = b = ByteImage::clip(16.0 * log2(-v));
+    if (v > 1.0) r = ByteImage::clip(32.0 * log2(v));
+    else if (v < 1.0) g = b = ByteImage::clip(32.0 * log2(-v));
   }
 
   void handleEvent(SDL_Event event) {

@@ -4,6 +4,7 @@
 class FluidSim {
 protected:
   Matrix N[9], p, ux, uy;
+  ByteImage wall;
   double w[9];
 
   inline static double sq(double d) {return d * d;}
@@ -41,6 +42,7 @@ public:
     omega = 1.0;
     setWeights();
 
+    wall = ByteImage(nr, nc);
     p = ux = uy = Matrix(nr, nc);
 
     for (int i = 0; i < 9; i++) N[i] = p;
@@ -101,6 +103,22 @@ public:
 
     delete [] d;
 
+    //Check walls
+    for (int r = 1; r < nr - 1; r++)
+      for (int c = 1; c < nc - 1; c++)
+	if (wall.at(r, c)) {
+	  N[3].at(r, c - 1) += N[1].at(r, c);
+	  N[4].at(r + 1, c) += N[2].at(r, c);
+	  N[1].at(r, c + 1) += N[3].at(r, c);
+	  N[2].at(r - 1, c) += N[4].at(r, c);
+	  N[7].at(r + 1, c - 1) += N[5].at(r, c);
+	  N[8].at(r + 1, c + 1) += N[6].at(r, c);
+	  N[5].at(r - 1, c + 1) += N[7].at(r, c);
+	  N[6].at(r - 1, c - 1) += N[8].at(r, c);
+	  for (int i = 0; i < 9; i++)
+	    N[i].at(r, c) = 0.0;
+	}
+
     /* Reset edges */
     for (int r = 0; r < nr; r++) {
       setEq(r, 0);
@@ -116,6 +134,11 @@ public:
     double Neq;
     for (int r = 0; r < nr; r++)
       for (int c = 0; c < nc; c++) {
+	if (wall.at(r, c)) {
+	  p.at(r, c) = ux.at(r, c) = uy.at(r, c) = 0.0;
+	  continue;
+	}
+
 	//Compute density as a sum of all molecules in a cell
 	p.at(r, c) = 0.0;
 	for (int i = 0; i < 9; i++)
@@ -134,20 +157,33 @@ public:
 
   }
 
+  void setWall(int r, int c) {
+    if (r < 1 || r >= rows() - 1 || c < 1 || c >= cols() - 1) return;
+    for (int i = 0; i < 9; i++) N[i].at(r, c) = 0;
+    wall.at(r, c) = 0xFF;
+  }
   void setEq(int r, int c) {
     for (int i = 0; i < 9; i++) 
       N[i].at(r, c) = EQ * w[i];
   }
 
-  void emitAt(int r, int c, double power = 16.0) {
+  void emitAt(int r, int c, double power = 24.0) {
     if (r < 0 || r >= rows() || c < 0 || c >= cols()) return;
     for (int i = 0; i < 9; i++) 
       N[i].at(r, c) = (EQ + power) * w[i];
+  }
+  void accelAt(int r, int c, double power = 50.0) {
+    if (r < 0 || r >= rows() || c < 0 || c >= cols()) return;
+    setEq(r, c);
+    N[2].at(r, c) = (EQ + power) * w[2];
   }
 
   double pressureAt(int r, int c) const {return p.at(r, c);}
   double curlAt(int r, int c) const {
     return uy.at(r, c + 1) - uy.at(r, c - 1) - ux.at(r + 1, c) + ux.at(r - 1, c);
+  }
+  unsigned char wallAt(int r, int c) const {
+    return wall.at(r, c);
   }
 };
 
@@ -159,6 +195,12 @@ protected:
   int sc;
 
   enum {
+    EMIT,
+    ACCEL,
+    WALL
+  } emitmode;
+
+  enum {
     PRESSURE,
     CURL    
   } rendermode;
@@ -167,11 +209,16 @@ protected:
   bool emitting;
   int mx, my;
 
-  void mapColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
+  void mapPressureColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
     r = g = b = 0;
     v -= sim.EQ;
     if (v > 1.0) r = ByteImage::clip(32.0 * log2(v));
     else if (v < 1.0) g = b = ByteImage::clip(32.0 * log2(-v));
+  }
+  void mapCurlColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
+    r = g = b = 0;
+    if (v > 0.0) r = ByteImage::clip(255.0 * 3.0 * v);
+    else if (v < 0.0) g = b = ByteImage::clip(255.0 * 3.0 * -v);
   }
 
   void handleEvent(SDL_Event event) {
@@ -210,10 +257,19 @@ protected:
       case SDLK_p:
 	rendermode = PRESSURE;
 	break;
+      case SDLK_e:
+	emitmode = EMIT;
+	break;
+      case SDLK_a:
+	emitmode = ACCEL;
+	break;
+      case SDLK_w:
+	emitmode = WALL;
+	break;
       case SDLK_c:
 	rendermode = CURL;
 	break;
-      case SDLK_w:
+      case SDLK_o:
 	printf("Set omega (current value: %.2lf)\n", sim.omega);
 	scanf("%lf", &sim.omega);
 	break;
@@ -234,22 +290,34 @@ protected:
       for (int c = 0; c < sim.cols(); c++) {
 	switch (rendermode) {
 	case PRESSURE:
-	  mapColor(sim.pressureAt(r, c), R, G, B);
+	  mapPressureColor(sim.pressureAt(r, c), R, G, B);
 	  break;
 	case CURL:
-	  mapColor(sim.curlAt(r, c), R, G, B);
+	  mapCurlColor(sim.curlAt(r, c), R, G, B);
 	  break;
 	}	
+	if (sim.wallAt(r, c)) R = G = B = 255;
 	DrawRect(canvas, c * sc, r * sc, sc, sc, R, G, B);
       }
     updateImage(canvas);
   }
 
   void emit() {
-    if (emitting)
+    if (!emitting) return;
+
+    if (emitmode == EMIT)
       for (int i = -2; i <= 2; i++)
 	for (int j = -2; j <= 2; j++)
 	  sim.emitAt(my + i, mx + j);
+    else if (emitmode == ACCEL)
+      for (int i = -2; i <= 2; i++)
+	for (int j = -2; j <= 2; j++)
+	  sim.accelAt(my + i, mx + j);
+    else if (emitmode == WALL) {
+      for (int i = -2; i <= 2; i++)
+	for (int j = -2; j <= 2; j++)
+	  sim.setWall(my + i, mx + j);
+    }
   }
 
   void update() {
@@ -269,6 +337,7 @@ public:
 
     sim = FluidSim(h, w);
 
+    emitmode = EMIT;
     rendermode = PRESSURE;
     emitting = 0;
     rate = 1;

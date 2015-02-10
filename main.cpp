@@ -193,7 +193,7 @@ class FluidDisplay : public ByteImageDisplay {
 protected:
   ByteImage canvas;
   FluidSim sim;
-  int sc;
+  int sc, radius;
 
   enum {
     EMIT,
@@ -281,6 +281,13 @@ protected:
       case SDLK_BACKSPACE:
 	sim = FluidSim(sim.rows(), sim.cols());
 	break;
+      case SDLK_UP:
+	printf("Radius: %d\n", ++radius);
+	break;
+      case SDLK_DOWN:
+	if (radius > 1)
+	  printf("Radius: %d\n", --radius);
+	break;
       }
     }
     ByteImageDisplay::handleEvent(event);
@@ -308,20 +315,20 @@ protected:
     if (!emitting) return;
 
     if (emitmode == EMIT) {
-      for (int i = -3; i <= 3; i++)
-	for (int j = -3; j <= 3; j++)
-	  if (i * i + j * j <= 9)
+      for (int i = -radius; i <= radius; i++)
+	for (int j = -radius; j <= radius; j++)
+	  if (i * i + j * j <= radius * radius)
 	    sim.emitAt(my + i, mx + j);
     }
     else if (emitmode == ACCEL) {
-      for (int i = -3; i <= 3; i++)
-	for (int j = -3; j <= 3; j++)
-	  if (i * i + j * j <= 9)
+      for (int i = -radius; i <= radius; i++)
+	for (int j = -radius; j <= radius; j++)
+	  if (i * i + j * j <= radius * radius)
 	    sim.accelAt(my + i, mx + j);
     }
     else if (emitmode == WALL) {
-      for (int i = -2; i <= 2; i++)
-	for (int j = -2; j <= 2; j++)
+      for (int i = -radius; i <= radius; i++)
+	for (int j = -radius; j <= radius; j++)
 	  sim.setWall(my + i, mx + j);
     }
   }
@@ -346,6 +353,7 @@ public:
     emitmode = EMIT;
     rendermode = PRESSURE;
     emitting = 0;
+    radius = 3;
     rate = 1;
   }
 };

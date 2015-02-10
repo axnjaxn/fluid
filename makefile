@@ -7,4 +7,4 @@ run: app
 	./app
 
 clean:
-	rm -f *~ *.o
+	rm -f *~ *.o app

@@ -168,18 +168,19 @@ public:
   }
 
   void emitAt(int r, int c, double power = 24.0) {
-    if (r < 0 || r >= rows() || c < 0 || c >= cols()) return;
+    if (r < 0 || r >= rows() || c < 0 || c >= cols() || wall.at(r, c)) return;
     for (int i = 0; i < 9; i++) 
       N[i].at(r, c) = (EQ + power) * w[i];
   }
   void accelAt(int r, int c, double power = 50.0) {
-    if (r < 0 || r >= rows() || c < 0 || c >= cols()) return;
+    if (r < 0 || r >= rows() || c < 0 || c >= cols() || wall.at(r, c)) return;
     setEq(r, c);
     N[2].at(r, c) = (EQ + power) * w[2];
   }
 
   double pressureAt(int r, int c) const {return p.at(r, c);}
   double curlAt(int r, int c) const {
+    if (r <= 0 || r >= rows() - 1 || c <= 0 || c >= cols() - 1) return 0.0;
     return uy.at(r, c + 1) - uy.at(r, c - 1) - ux.at(r + 1, c) + ux.at(r - 1, c);
   }
   unsigned char wallAt(int r, int c) const {
@@ -212,13 +213,14 @@ protected:
   void mapPressureColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
     r = g = b = 0;
     v -= sim.EQ;
-    if (v > 1.0) r = ByteImage::clip(32.0 * log2(v));
-    else if (v < 1.0) g = b = ByteImage::clip(32.0 * log2(-v));
+    if (v > 0.0) r = ByteImage::clip(32.0 * v);
+    else if (v < 0.0) g = b = ByteImage::clip(32.0 * -v);
   }
   void mapCurlColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
     r = g = b = 0;
-    if (v > 0.0) r = ByteImage::clip(255.0 * 3.0 * v);
-    else if (v < 0.0) g = b = ByteImage::clip(255.0 * 3.0 * -v);
+    v *= 25.0;
+    if (v > 0.0) r = ByteImage::clip(255.0 * v);
+    else if (v < 0.0) g = b = ByteImage::clip(255.0 * -v);
   }
 
   void handleEvent(SDL_Event event) {
@@ -305,14 +307,18 @@ protected:
   void emit() {
     if (!emitting) return;
 
-    if (emitmode == EMIT)
-      for (int i = -2; i <= 2; i++)
-	for (int j = -2; j <= 2; j++)
-	  sim.emitAt(my + i, mx + j);
-    else if (emitmode == ACCEL)
-      for (int i = -2; i <= 2; i++)
-	for (int j = -2; j <= 2; j++)
-	  sim.accelAt(my + i, mx + j);
+    if (emitmode == EMIT) {
+      for (int i = -3; i <= 3; i++)
+	for (int j = -3; j <= 3; j++)
+	  if (i * i + j * j <= 9)
+	    sim.emitAt(my + i, mx + j);
+    }
+    else if (emitmode == ACCEL) {
+      for (int i = -3; i <= 3; i++)
+	for (int j = -3; j <= 3; j++)
+	  if (i * i + j * j <= 9)
+	    sim.accelAt(my + i, mx + j);
+    }
     else if (emitmode == WALL) {
       for (int i = -2; i <= 2; i++)
 	for (int j = -2; j <= 2; j++)

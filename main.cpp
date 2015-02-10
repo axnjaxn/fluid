@@ -146,6 +146,9 @@ public:
   }
 
   double pressureAt(int r, int c) const {return p.at(r, c);}
+  double curlAt(int r, int c) const {
+    return uy.at(r, c + 1) - uy.at(r, c - 1) - ux.at(r + 1, c) + ux.at(r - 1, c);
+  }
 };
 
 #include <byteimage/render.h>
@@ -154,6 +157,11 @@ protected:
   ByteImage canvas;
   FluidSim sim;
   int sc;
+
+  enum {
+    PRESSURE,
+    CURL    
+  } rendermode;
 
   int rate;
   bool emitting;
@@ -199,6 +207,12 @@ protected:
       case SDLK_5:
 	rate = 16;
 	break;
+      case SDLK_p:
+	rendermode = PRESSURE;
+	break;
+      case SDLK_c:
+	rendermode = CURL;
+	break;
       case SDLK_w:
 	printf("Set omega (current value: %.2lf)\n", sim.omega);
 	scanf("%lf", &sim.omega);
@@ -218,7 +232,14 @@ protected:
     ByteImage::BYTE R, G, B;
     for (int r = 0; r < sim.rows(); r++)
       for (int c = 0; c < sim.cols(); c++) {
-	mapColor(sim.pressureAt(r, c), R, G, B);
+	switch (rendermode) {
+	case PRESSURE:
+	  mapColor(sim.pressureAt(r, c), R, G, B);
+	  break;
+	case CURL:
+	  mapColor(sim.curlAt(r, c), R, G, B);
+	  break;
+	}	
 	DrawRect(canvas, c * sc, r * sc, sc, sc, R, G, B);
       }
     updateImage(canvas);
@@ -247,7 +268,8 @@ public:
     updateImage(canvas);
 
     sim = FluidSim(h, w);
-    
+
+    rendermode = PRESSURE;
     emitting = 0;
     rate = 1;
   }

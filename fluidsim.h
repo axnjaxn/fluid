@@ -7,6 +7,10 @@
 class FluidSim {
 protected:
   Matrix N[9], p, ux, uy;
+
+  static const unsigned char WALL      = 0x01;
+  static const unsigned char FIXED_VEL = 0x02;
+
   ByteImage wall;
   double w[9];
 
@@ -30,12 +34,15 @@ public:
   void setWall(int r, int c);
   void setEq(int r, int c);
   void emitAt(int r, int c, double power = 24.0);
-  void accelAt(int r, int c, double power = 60.0);
+  void accelAt(int r, int c, double power = 0.2);
+  void setWindTunnel(double power = 0.05);
 
   double pressureAt(int r, int c) const;
   double curlAt(int r, int c) const;
   double speedAt(int r, int c) const;
-  unsigned char wallAt(int r, int c) const;
+
+  bool isWall(int r, int c) const;
+  bool isFixedVel(int r, int c) const;
 };
 
 #endif

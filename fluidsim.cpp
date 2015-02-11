@@ -93,7 +93,7 @@ void FluidSim::step() {
   //Check walls
   for (int r = 1; r < nr - 1; r++)
     for (int c = 1; c < nc - 1; c++)
-      if (wall.at(r, c)) {
+      if (isWall(r, c)) {
 	N[3].at(r, c - 1) += N[1].at(r, c);
 	N[4].at(r + 1, c) += N[2].at(r, c);
 	N[1].at(r, c + 1) += N[3].at(r, c);
@@ -121,7 +121,7 @@ void FluidSim::step() {
   double Neq;
   for (int r = 0; r < nr; r++)
     for (int c = 0; c < nc; c++) {
-      if (wall.at(r, c)) {
+      if (isWall(r, c)) {
 	p.at(r, c) = ux.at(r, c) = uy.at(r, c) = 0.0;
 	continue;
       }
@@ -130,10 +130,17 @@ void FluidSim::step() {
       p.at(r, c) = 0.0;
       for (int i = 0; i < 9; i++)
 	p.at(r, c) += N[i].at(r, c);
-
+      if (p.at(r, c) <= 1.0)
+	for (int i = 0; i < 9; i++) {
+	  N[i].at(r, c) = w[i];
+	  p.at(r, c) = 1.0;
+	}
+      
       //Compute flow velocity
-      ux.at(r, c) = (N[1].at(r, c) + N[5].at(r, c) + N[8].at(r, c) - N[3].at(r, c) - N[6].at(r, c) - N[7].at(r, c)) / p.at(r, c);
-      uy.at(r, c) = (N[2].at(r, c) + N[5].at(r, c) + N[6].at(r, c) - N[4].at(r, c) - N[7].at(r, c) - N[8].at(r, c)) / p.at(r, c);
+      if (!isFixedVel(r, c)) {
+	ux.at(r, c) = (N[1].at(r, c) + N[5].at(r, c) + N[8].at(r, c) - N[3].at(r, c) - N[6].at(r, c) - N[7].at(r, c)) / p.at(r, c);
+	uy.at(r, c) = (N[2].at(r, c) + N[5].at(r, c) + N[6].at(r, c) - N[4].at(r, c) - N[7].at(r, c) - N[8].at(r, c)) / p.at(r, c);
+      }
 
       //Collision and relaxation
       for (int i = 0; i < 9; i++) {
@@ -164,7 +171,16 @@ void FluidSim::emitAt(int r, int c, double power) {
 void FluidSim::accelAt(int r, int c, double power) {
   if (r < 0 || r >= rows() || c < 0 || c >= cols() || wall.at(r, c)) return;
   setEq(r, c);
-  N[2].at(r, c) = (EQ + power) * w[2];
+  ux.at(r, c) = power;
+  uy.at(r, c) = 0.0;
+  wall.at(r, c) = FIXED_VEL;
+}
+
+void FluidSim::setWindTunnel(double power) {
+  for (int r = 0; r < rows(); r++) {
+    accelAt(r, 0, power);
+    accelAt(r, cols() - 1, power);
+  }    
 }
 
 double FluidSim::pressureAt(int r, int c) const {return p.at(r, c);}
@@ -177,6 +193,10 @@ double FluidSim::speedAt(int r, int c) const {
   return sqrt(sq(ux.at(r, c)) + sq(uy.at(r, c)));
 }
 
-unsigned char FluidSim::wallAt(int r, int c) const {
-  return wall.at(r, c);
+bool FluidSim::isWall(int r, int c) const {
+  return wall.at(r, c) & WALL;
+}
+
+bool FluidSim::isFixedVel(int r, int c) const {
+  return wall.at(r, c) & FIXED_VEL;
 }

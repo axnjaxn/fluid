@@ -110,6 +110,9 @@ protected:
 	if (radius > 1)
 	  printf("Radius: %d\n", --radius);
 	break;
+      case SDLK_t:
+	sim.setWindTunnel();
+	break;
       }
     }
     ByteImageDisplay::handleEvent(event);
@@ -130,7 +133,7 @@ protected:
 	  mapSpeedColor(sim.speedAt(r, c), R, G, B);
 	  break;
 	}	
-	if (sim.wallAt(r, c)) R = G = B = 255;
+	if (sim.isWall(r, c)) R = G = B = 255;
 	DrawRect(canvas, c * sc, r * sc, sc, sc, R, G, B);
       }
     updateImage(canvas);

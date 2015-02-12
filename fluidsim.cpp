@@ -2,18 +2,34 @@
 #include <cstring>
 #include <cmath>
 
+/*
+ * A note on the axes
+ *
+ * +-----------> c, x
+ * |
+ * |     2
+ * |   6   5
+ * | 3   0   1
+ * |   7   8
+ * |     4
+ * |
+ * v
+ *
+ * r, y
+ */
+
 double FluidSim::dot(int i, double ux, double uy) {
   switch (i) {
   default:
   case 0: return 0.0;
   case 1: return ux;
-  case 2: return uy;
+  case 2: return -uy;
   case 3: return -ux;
-  case 4: return -uy;
-  case 5: return ux + uy;
-  case 6: return uy - ux;
-  case 7: return -ux - uy;
-  case 8: return ux - uy;
+  case 4: return uy;
+  case 5: return ux - uy;
+  case 6: return -ux -uy;
+  case 7: return -ux + uy;
+  case 8: return ux + uy;
   }
 }
 
@@ -141,7 +157,7 @@ void FluidSim::step() {
       //Compute flow velocity
       if (!isFixedVel(r, c)) {
 	ux.at(r, c) = (N[1].at(r, c) + N[5].at(r, c) + N[8].at(r, c) - N[3].at(r, c) - N[6].at(r, c) - N[7].at(r, c)) / p.at(r, c);
-	uy.at(r, c) = (N[2].at(r, c) + N[5].at(r, c) + N[6].at(r, c) - N[4].at(r, c) - N[7].at(r, c) - N[8].at(r, c)) / p.at(r, c);
+	uy.at(r, c) = -(N[2].at(r, c) + N[5].at(r, c) + N[6].at(r, c) - N[4].at(r, c) - N[7].at(r, c) - N[8].at(r, c)) / p.at(r, c);
       }
 
       //Collision and relaxation

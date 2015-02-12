@@ -103,6 +103,14 @@ protected:
 	if (radius > 1)
 	  printf("Radius: %d\n", --radius);
 	break;
+      case SDLK_LEFT:
+	if (sim.omega > 0.05) sim.omega -= 0.05;
+	printf("Omega: %.2lf\n", sim.omega);
+	break;
+      case SDLK_RIGHT:
+	if (sim.omega < 1.95) sim.omega += 0.05;
+	printf("Omega: %.2lf\n", sim.omega);
+	break;
       case SDLK_t:
 	sim.setWindTunnel();
 	break;

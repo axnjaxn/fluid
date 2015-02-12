@@ -128,8 +128,10 @@ void FluidSim::step() {
 
       //Compute density as a sum of all molecules in a cell
       p.at(r, c) = 0.0;
-      for (int i = 0; i < 9; i++)
+      for (int i = 0; i < 9; i++) {
+	if (N[i].at(r, c) < 0.0) N[i].at(r, c) = 0.0;
 	p.at(r, c) += N[i].at(r, c);
+      }
       if (p.at(r, c) <= 1.0)
 	for (int i = 0; i < 9; i++) {
 	  N[i].at(r, c) = w[i];

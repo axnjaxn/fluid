@@ -165,8 +165,7 @@ void FluidSim::step() {
 	Neq = p.at(r, c) * w[i] * (1 + 3 * dot(i, ux.at(r, c), uy.at(r, c)) + 4.5 * sq(dot(i, ux.at(r, c), uy.at(r, c))) - 1.5 * (sq(ux.at(r, c)) + sq(uy.at(r, c))));
 	N[i].at(r, c) += omega * (Neq - N[i].at(r, c));
       }
-    }    
-
+    }
 }
 
 void FluidSim::setWall(int r, int c) {

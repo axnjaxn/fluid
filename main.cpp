@@ -1,17 +1,20 @@
 #include "fluidsim.h"
 #include <byteimage/byteimage_sdl2.h>
 #include <byteimage/render.h>
+#include <vector>
 
 class FluidDisplay : public ByteImageDisplay {
 protected:
   ByteImage canvas;
   FluidSim sim;
   int sc, radius;
+  std::vector<Matrix> trackers;
 
   enum {
     EMIT,
     ACCEL,
-    WALL
+    WALL,
+    TRACKER
   } emitmode;
 
   enum {
@@ -78,6 +81,7 @@ protected:
       case SDLK_e: emitmode = EMIT; break;
       case SDLK_a: emitmode = ACCEL; break;
       case SDLK_w: emitmode = WALL; break;
+      case SDLK_r: emitmode = TRACKER; break;
       case SDLK_c: rendermode = CURL; break;
       case SDLK_s: rendermode = SPEED; break;
       case SDLK_x: showgrid = !showgrid; break;
@@ -132,6 +136,11 @@ protected:
 	  DrawLine(canvas, v, v1, color);
 	}
       }
+
+    for (int i = 0; i < trackers.size(); i++) {
+      DrawPoint(canvas, trackers[i], color, 3);
+      DrawPoint(canvas, trackers[i], 0.5 * color, 3);
+    }
     
     if (drawing)
       DrawLine(canvas, makePoint(nx + 0.5, ny + 0.5, 1.0 / sc), makePoint(mx + 0.5, my + 0.5, 1.0 / sc), makeColor(255, 255, 255));
@@ -141,10 +150,16 @@ protected:
   void emit() {
     if (!emitting) return;
 
+    if (emitmode == TRACKER) {
+      trackers.push_back(makePoint(mx, my, 1.0 / sc));
+      return;
+    }
+
     for (int i = -radius; i <= radius; i++)
       for (int j = -radius; j <= radius; j++)
 	if (i * i + j * j <= radius * radius)
 	  switch (emitmode) {
+	  default:
 	  case EMIT:
 	    sim.emitAt(my + i, mx + j);
 	    break;
@@ -157,10 +172,35 @@ protected:
 	  }
   }
 
+  void moveTrackers() {
+    double x, y;
+    int r, c;
+    
+    for (int i = 0; i < trackers.size(); i++) {
+      x = trackers[i].at(0);
+      y = trackers[i].at(1);
+      r = (int)(y + 0.5);
+      c = (int)(x + 0.5);
+      
+      x += 10 * sim.xVel(r, c);
+      y += 10 * sim.yVel(r, c);
+      r = (int)(y + 0.5);
+      c = (int)(x + 0.5);
+
+      if (c < 1 || c >= sim.cols() - 1 || r < 1 || r >= sim.rows() - 1) {
+	trackers.erase(trackers.begin() + i--);
+	continue;
+      }
+
+      trackers[i] = makePoint(x, y, 1.0 / sc);
+    }
+  }
+
   void update() {
     for (int i = 0; i < rate; i++) {
       emit();
       sim.step();
+      moveTrackers();
     }
     render();
     ByteImageDisplay::update();

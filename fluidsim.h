@@ -28,7 +28,7 @@ public:
 
   inline int rows() const {return N[0].rows();}
   inline int cols() const {return N[0].cols();}
-  
+
   void step();
 
   void setWall(int r, int c);

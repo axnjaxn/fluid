@@ -40,6 +40,8 @@ public:
   double pressureAt(int r, int c) const;
   double curlAt(int r, int c) const;
   double speedAt(int r, int c) const;
+  inline double xVel(int r, int c) const {return ux.at(r, c);}
+  inline double yVel(int r, int c) const {return uy.at(r, c);}
 
   bool isWall(int r, int c) const;
   bool isFixedVel(int r, int c) const;

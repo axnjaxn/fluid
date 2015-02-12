@@ -21,7 +21,7 @@ protected:
   } rendermode;
 
   int rate;
-  bool emitting, drawing;
+  bool emitting, drawing, showgrid;
   int mx, my, nx, ny;
 
   void mapPressureColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
@@ -80,6 +80,7 @@ protected:
       case SDLK_w: emitmode = WALL; break;
       case SDLK_c: rendermode = CURL; break;
       case SDLK_s: rendermode = SPEED; break;
+      case SDLK_x: showgrid = !showgrid; break;
       case SDLK_o:
 	printf("Set omega (current value: %.2lf)\n", sim.omega);
 	scanf("%lf", &sim.omega);
@@ -108,6 +109,7 @@ protected:
 
   void render() {
     ByteImage::BYTE R, G, B;
+    Matrix v, v1, color = makeColor(255, 255, 255);
     for (int r = 0; r < sim.rows(); r++)
       for (int c = 0; c < sim.cols(); c++) {
 	switch (rendermode) {
@@ -123,7 +125,14 @@ protected:
 	}	
 	if (sim.isWall(r, c)) R = G = B = 255;
 	DrawRect(canvas, c * sc, r * sc, sc, sc, R, G, B);
+
+	if (showgrid) {
+	  v = makePoint(c + 0.5, r + 0.5, 1.0 / sc);
+	  v1 = v + 25.0 * makePoint(sim.xVel(r, c), -sim.yVel(r, c), 0.0);
+	  DrawLine(canvas, v, v1, color);
+	}
       }
+    
     if (drawing)
       DrawLine(canvas, makePoint(nx + 0.5, ny + 0.5, 1.0 / sc), makePoint(mx + 0.5, my + 0.5, 1.0 / sc), makeColor(255, 255, 255));
     updateImage(canvas);
@@ -167,7 +176,7 @@ public:
 
     emitmode = EMIT;
     rendermode = PRESSURE;
-    emitting = drawing = 0;
+    emitting = drawing = showgrid = 0;
     radius = 3;
     rate = 1;
   }

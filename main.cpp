@@ -139,7 +139,7 @@ protected:
 
     for (int i = 0; i < trackers.size(); i++) {
       DrawPoint(canvas, trackers[i], color, 3);
-      DrawPoint(canvas, trackers[i], 0.5 * color, 3);
+      DrawPoint(canvas, trackers[i], 0.5 * color, 1);
     }
     
     if (drawing)

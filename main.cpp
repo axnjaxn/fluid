@@ -1,5 +1,6 @@
 #include "fluidsim.h"
 #include <byteimage/byteimage_sdl2.h>
+#include <byteimage/bytevideo.h>
 #include <byteimage/render.h>
 #include <vector>
 
@@ -95,6 +96,7 @@ protected:
 	break;
       case SDLK_BACKSPACE:
 	sim = FluidSim(sim.rows(), sim.cols());
+	trackers.clear();
 	break;
       case SDLK_UP:
 	printf("Radius: %d\n", ++radius);
@@ -113,6 +115,10 @@ protected:
 	break;
       case SDLK_t:
 	sim.setWindTunnel();
+	break;
+      case SDLK_RETURN:
+	if (recording) stopRecording();
+	else startRecording();
 	break;
       }
     }
@@ -211,7 +217,32 @@ protected:
       moveTrackers();
     }
     render();
+    if (recording) recordFrame();
     ByteImageDisplay::update();
+    if (exitflag && recording) stopRecording(); 
+  }
+
+  ByteVideoWriter writer;
+  bool recording;
+
+  void startRecording() {
+    if (recording) return;
+    recording = 1;
+
+    char fn[256];
+    sprintf(fn, "%d.avi", (int)time(NULL));
+
+    printf("Writing to %s...\n", fn);
+    writer.open(fn, canvas.nr, canvas.nc, 30);
+  }
+
+  void stopRecording() {
+    if (!recording) return;
+    writer.close();
+    printf("Finished writing video.\n");
+  }
+  void recordFrame() {
+    writer.write(canvas);
   }
 
 public:
@@ -227,6 +258,8 @@ public:
     emitting = drawing = showgrid = 0;
     radius = 3;
     rate = 1;
+
+    recording = 0;
   }
 };
 

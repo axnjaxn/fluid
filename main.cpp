@@ -238,6 +238,8 @@ protected:
 
   void stopRecording() {
     if (!recording) return;
+    recording = 0;
+
     writer.close();
     printf("Finished writing video.\n");
   }

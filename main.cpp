@@ -35,10 +35,10 @@ protected:
     color = pressure_palette.inRange(32.0 * (v - sim.EQ) / 255.0);
   }
   void mapCurlColor(double v, Palette::Color& color) {
-    color = curl_palette.inRange(50.0 * v);
+    color = curl_palette.inRange(16.0 * v);
   }
   void mapSpeedColor(double v, Palette::Color& color) {
-    color = speed_palette.inRange(10.0 * v);
+    color = speed_palette.inUnit(4.0 * v);
   }
 
   void handleEvent(SDL_Event event) {
@@ -252,7 +252,12 @@ public:
     pal[0] = Palette::Color(0, 255, 255);
     pal[1] = Palette::Color(0, 0, 0);
     pal[2] = Palette::Color(255, 0, 0);
-    pressure_palette = speed_palette = curl_palette = pal.cache(256);
+    pressure_palette = pal.cache(256);
+    pal[0] = Palette::Color(0, 0, 0);
+    pal[1] = Palette::Color(255, 128, 64);
+    pal[2] = Palette::Color(255, 255, 255);
+    speed_palette = pal.cache(256);
+    curl_palette = jetPalette().cache(256);
     
     sim = FluidSim(h, w);
 

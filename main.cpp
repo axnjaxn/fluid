@@ -1,6 +1,7 @@
 #include "fluidsim.h"
 #include <byteimage/byteimage_sdl2.h>
 #include <byteimage/bytevideo.h>
+#include <byteimage/palette.h>
 #include <byteimage/render.h>
 #include <vector>
 
@@ -10,6 +11,8 @@ protected:
   FluidSim sim;
   int sc, radius;
   std::vector<Matrix> trackers;
+
+  CachedPalette pressure_palette, curl_palette, speed_palette;
 
   enum {
     EMIT,
@@ -27,23 +30,15 @@ protected:
   int rate;
   bool emitting, drawing, showgrid;
   int mx, my, nx, ny;
-
-  void mapPressureColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
-    r = g = b = 0;
-    v -= sim.EQ;
-    if (v > 0.0) r = ByteImage::clip(32.0 * v);
-    else if (v < 0.0) g = b = ByteImage::clip(32.0 * -v);
+  
+  void mapPressureColor(double v, Palette::Color& color) {
+    color = pressure_palette.inRange(32.0 * (v - sim.EQ) / 255.0);
   }
-  void mapCurlColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
-    r = g = b = 0;
-    v *= 50.0;
-    if (v > 0.0) r = ByteImage::clip(255.0 * v);
-    else if (v < 0.0) g = b = ByteImage::clip(255.0 * -v);
+  void mapCurlColor(double v, Palette::Color& color) {
+    color = curl_palette.inRange(50.0 * v);
   }
-  void mapSpeedColor(double v, ByteImage::BYTE& r, ByteImage::BYTE& g, ByteImage::BYTE& b) {
-    r = g = b = 0;
-    v *= 10.0;
-    r = ByteImage::clip(255.0 * v);
+  void mapSpeedColor(double v, Palette::Color& color) {
+    color = speed_palette.inRange(10.0 * v);
   }
 
   void handleEvent(SDL_Event event) {
@@ -126,23 +121,23 @@ protected:
   }
 
   void render() {
-    ByteImage::BYTE R, G, B;
+    Palette::Color cell_color;
     Matrix v, v1, color = makeColor(255, 255, 255);
     for (int r = 0; r < sim.rows(); r++)
       for (int c = 0; c < sim.cols(); c++) {
 	switch (rendermode) {
 	case PRESSURE:
-	  mapPressureColor(sim.pressureAt(r, c), R, G, B);
+	  mapPressureColor(sim.pressureAt(r, c), cell_color);
 	  break;
 	case CURL:
-	  mapCurlColor(sim.curlAt(r, c), R, G, B);
+	  mapCurlColor(sim.curlAt(r, c), cell_color);
 	  break;
 	case SPEED:
-	  mapSpeedColor(sim.speedAt(r, c), R, G, B);
+	  mapSpeedColor(sim.speedAt(r, c), cell_color);
 	  break;
 	}	
-	if (sim.isWall(r, c)) R = G = B = 255;
-	DrawRect(canvas, c * sc, r * sc, sc, sc, R, G, B);
+	if (sim.isWall(r, c)) cell_color = Palette::Color(255, 255, 255);
+	DrawRect(canvas, c * sc, r * sc, sc, sc, cell_color.r, cell_color.g, cell_color.b);
 
 	if (showgrid) {
 	  v = makePoint(c + 0.5, r + 0.5, 1.0 / sc);
@@ -253,6 +248,12 @@ public:
     canvas = ByteImage(h * sc, w * sc, 3);
     updateImage(canvas);
 
+    LinearPalette pal(3);
+    pal[0] = Palette::Color(0, 255, 255);
+    pal[1] = Palette::Color(0, 0, 0);
+    pal[2] = Palette::Color(255, 0, 0);
+    pressure_palette = speed_palette = curl_palette = pal.cache(256);
+    
     sim = FluidSim(h, w);
 
     emitmode = EMIT;

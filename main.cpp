@@ -257,7 +257,7 @@ public:
     pal[1] = Palette::Color(255, 128, 64);
     pal[2] = Palette::Color(255, 255, 255);
     speed_palette = pal.cache(256);
-    curl_palette = jetPalette().cache(256);
+    curl_palette = LinearPalette::jet().cache(256);
     
     sim = FluidSim(h, w);
 

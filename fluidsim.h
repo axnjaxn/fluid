@@ -8,8 +8,8 @@ class FluidSim {
 protected:
   Matrix N[9], p, ux, uy;
 
-  static const unsigned char WALL      = 0x01;
-  static const unsigned char FIXED_VEL = 0x02;
+  static constexpr unsigned char WALL      = 0x01;
+  static constexpr unsigned char FIXED_VEL = 0x02;
 
   ByteImage wall;
   double w[9];
@@ -20,7 +20,7 @@ protected:
   void setWeights();
 
 public:
-  static const double EQ = 100.0;
+  static constexpr double EQ = 100.0;
   double omega;
 
   FluidSim();

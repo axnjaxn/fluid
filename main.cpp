@@ -1,11 +1,13 @@
 #include "fluidsim.h"
 #include <byteimage/byteimage_sdl2.h>
-#include <byteimage/bytevideo.h>
+#include <byteimage/video.h>
 #include <byteimage/palette.h>
 #include <byteimage/render.h>
 #include <vector>
 
-class FluidDisplay : public ByteImageDisplay {
+using namespace byteimage;
+
+class FluidDisplay : public Display {
 protected:
   ByteImage canvas;
   FluidSim sim;
@@ -117,7 +119,7 @@ protected:
 	break;
       }
     }
-    ByteImageDisplay::handleEvent(event);
+    Display::handleEvent(event);
   }
 
   void render() {
@@ -213,11 +215,11 @@ protected:
     }
     render();
     if (recording) recordFrame();
-    ByteImageDisplay::update();
+    Display::update();
     if (exitflag && recording) stopRecording(); 
   }
 
-  ByteVideoWriter* writer = nullptr;
+  VideoWriter* writer = nullptr;
   bool recording;
 
   void startRecording() {
@@ -228,7 +230,7 @@ protected:
     sprintf(fn, "%d.avi", (int)time(NULL));
 
     printf("Writing to %s...\n", fn);
-    writer = new ByteVideoWriter(fn, canvas.nr, canvas.nc, 30);
+    writer = new VideoWriter(fn, canvas.nr, canvas.nc, 30);
   }
 
   void stopRecording() {
@@ -243,7 +245,7 @@ protected:
   }
 
 public:
-  FluidDisplay(int w, int h, int sc) : ByteImageDisplay(h * sc, w * sc, "Fluid Simulation by Brian Jackson") {
+  FluidDisplay(int w, int h, int sc) : Display(h * sc, w * sc, "Fluid Simulation by Brian Jackson") {
     this->sc = sc;
     canvas = ByteImage(h * sc, w * sc, 3);
     updateImage(canvas);

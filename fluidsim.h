@@ -4,6 +4,9 @@
 #include <byteimage/byteimage.h>
 #include <byteimage/matrix.h>
 
+using byteimage::ByteImage;
+using byteimage::Matrix;
+
 class FluidSim {
 protected:
   Matrix N[9], p, ux, uy;

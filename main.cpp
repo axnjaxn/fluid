@@ -217,7 +217,7 @@ protected:
     if (exitflag && recording) stopRecording(); 
   }
 
-  ByteVideoWriter writer;
+  ByteVideoWriter* writer = nullptr;
   bool recording;
 
   void startRecording() {
@@ -228,18 +228,18 @@ protected:
     sprintf(fn, "%d.avi", (int)time(NULL));
 
     printf("Writing to %s...\n", fn);
-    writer.open(fn, canvas.nr, canvas.nc, 30);
+    writer = new ByteVideoWriter(fn, canvas.nr, canvas.nc, 30);
   }
 
   void stopRecording() {
     if (!recording) return;
     recording = 0;
 
-    writer.close();
+    delete writer;
     printf("Finished writing video.\n");
   }
   void recordFrame() {
-    writer.write(canvas);
+    writer->write(canvas);
   }
 
 public:

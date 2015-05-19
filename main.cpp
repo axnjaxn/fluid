@@ -12,7 +12,7 @@ protected:
   ByteImage canvas;
   FluidSim sim;
   int sc, radius;
-  std::vector<Matrix> trackers;
+  std::vector<Pt2f> trackers;
 
   CachedPalette pressure_palette, curl_palette, speed_palette;
 
@@ -33,13 +33,13 @@ protected:
   bool emitting, drawing, showgrid;
   int mx, my, nx, ny;
   
-  void mapPressureColor(double v, Palette::Color& color) {
+  void mapPressureColor(double v, Color& color) {
     color = pressure_palette.inRange(32.0 * (v - sim.EQ) / 255.0);
   }
-  void mapCurlColor(double v, Palette::Color& color) {
+  void mapCurlColor(double v, Color& color) {
     color = curl_palette.inRange(16.0 * v);
   }
-  void mapSpeedColor(double v, Palette::Color& color) {
+  void mapSpeedColor(double v, Color& color) {
     color = speed_palette.inUnit(4.0 * v);
   }
 
@@ -57,10 +57,10 @@ protected:
 	emitting = 0;
       else if (event.button.button == SDL_BUTTON_RIGHT) {
 	drawing = 0;
-	Matrix d = makePoint(mx - nx, my - ny, 0);
+	Pt2f d(mx - nx, my - ny);
 	int n = length(d);
 	for (int i = 0; i <= n; i++)
-	  sim.setWall((int)(ny + d.at(1) * i / n), (int)(nx + d.at(0) * i / n));
+	  sim.setWall((int)(ny + d.y * i / n), (int)(nx + d.x * i / n));
       }
     }
     else if (event.type == SDL_MOUSEMOTION) {
@@ -123,8 +123,9 @@ protected:
   }
 
   void render() {
-    Palette::Color cell_color;
-    Matrix v, v1, color = makeColor(255, 255, 255);
+    Color cell_color;
+    Pt2f v, v1;
+    Color white(255, 255, 255), gray(128, 128, 128);
     for (int r = 0; r < sim.rows(); r++)
       for (int c = 0; c < sim.cols(); c++) {
 	switch (rendermode) {
@@ -138,23 +139,23 @@ protected:
 	  mapSpeedColor(sim.speedAt(r, c), cell_color);
 	  break;
 	}	
-	if (sim.isWall(r, c)) cell_color = Palette::Color(255, 255, 255);
+	if (sim.isWall(r, c)) cell_color = Color(255, 255, 255);
 	DrawRect(canvas, c * sc, r * sc, sc, sc, cell_color.r, cell_color.g, cell_color.b);
 
 	if (showgrid) {
-	  v = makePoint(c + 0.5, r + 0.5, 1.0 / sc);
-	  v1 = v + 25.0 * makePoint(sim.xVel(r, c), -sim.yVel(r, c), 0.0);
-	  DrawLine(canvas, v, v1, color);
+	  v = Pt2f(c + 0.5, r + 0.5) * sc;
+	  v1 = v + 25.0 * Pt2f(sim.xVel(r, c), -sim.yVel(r, c));
+	  DrawLine(canvas, v, v1, white);
 	}
       }
 
     for (int i = 0; i < trackers.size(); i++) {
-      DrawPoint(canvas, trackers[i], color, 3);
-      DrawPoint(canvas, trackers[i], 0.5 * color, 1);
+      DrawPoint(canvas, trackers[i], white, 3);
+      DrawPoint(canvas, trackers[i], gray, 1);
     }
     
     if (drawing)
-      DrawLine(canvas, makePoint(nx + 0.5, ny + 0.5, 1.0 / sc), makePoint(mx + 0.5, my + 0.5, 1.0 / sc), makeColor(255, 255, 255));
+      DrawLine(canvas, Pt2f(nx + 0.5, ny + 0.5) * sc, Pt2f(mx + 0.5, my + 0.5) * sc, white);
     updateImage(canvas);
   }
 
@@ -162,7 +163,7 @@ protected:
     if (!emitting) return;
 
     if (emitmode == TRACKER) {
-      trackers.push_back(makePoint(mx, my, 1.0 / sc));
+      trackers.push_back(Pt2f(mx, my) * sc);
       return;
     }
 
@@ -188,8 +189,8 @@ protected:
     int r, c;
     
     for (int i = 0; i < trackers.size(); i++) {
-      x = trackers[i].at(0);
-      y = trackers[i].at(1);
+      x = trackers[i].x;
+      y = trackers[i].y;
       r = (int)(y + 0.5);
       c = (int)(x + 0.5);
       
@@ -203,7 +204,7 @@ protected:
 	continue;
       }
 
-      trackers[i] = makePoint(x, y, 1.0 / sc);
+      trackers[i] = Pt2f(x, y) * sc;
     }
   }
 
@@ -251,13 +252,13 @@ public:
     updateImage(canvas);
 
     LinearPalette pal(3);
-    pal[0] = Palette::Color(0, 255, 255);
-    pal[1] = Palette::Color(0, 0, 0);
-    pal[2] = Palette::Color(255, 0, 0);
+    pal[0] = Color(0, 255, 255);
+    pal[1] = Color(0, 0, 0);
+    pal[2] = Color(255, 0, 0);
     pressure_palette = pal.cache(256);
-    pal[0] = Palette::Color(0, 0, 0);
-    pal[1] = Palette::Color(255, 128, 64);
-    pal[2] = Palette::Color(255, 255, 255);
+    pal[0] = Color(0, 0, 0);
+    pal[1] = Color(255, 128, 64);
+    pal[2] = Color(255, 255, 255);
     speed_palette = pal.cache(256);
     curl_palette = LinearPalette::jet().cache(256);
     
